@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion, usePointerRef } from "../lib/hooks";
 import { useLanguage } from "../lib/i18n";
+import { useEggs } from "../lib/eggs/EggContext";
 
 /* ============================================================
    نشانگر موس پیشرفته‌ی چند حالته
@@ -31,6 +32,11 @@ export function SmartCursor() {
   const [variant, setVariant] = useState<CursorVariant>("default");
   const [pressed, setPressed] = useState(false);
   const [ripples, setRipples] = useState<Ripple[]>([]);
+  const { rewardTheme, matrixMode, activeDialogue } = useEggs();
+  // وقتی یه ایستر اگ فعاله (ده‌ها المان انیمیشنی زیر نشانگر در حال تغییرن)،
+  // mix-blend-mode:difference باعث می‌شه مرورگر هر فریم کل صفحه رو دوباره
+  // ترکیب کنه — همین لگ نشانگر رو ایجاد می‌کرد. موقع فعال بودن افکت، خاموشش می‌کنیم.
+  const heavyEffectsActive = !!rewardTheme || matrixMode || !!activeDialogue;
 
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -159,17 +165,23 @@ export function SmartCursor() {
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[500] select-none"
-        style={{ mixBlendMode: "difference" }}
+        style={heavyEffectsActive ? undefined : { mixBlendMode: "difference" }}
       >
         {/* حلقه‌ی بیرونی */}
         <div
           ref={outerRef}
-          className="absolute left-0 top-0 flex items-center justify-center rounded-full border border-white transition-[width,height,background-color,border-width] duration-300 ease-out"
+          className="absolute left-0 top-0 flex items-center justify-center rounded-full border transition-[width,height,background-color,border-width] duration-300 ease-out"
           style={{
             width: outerSize,
             height: outerSize,
-            background: expanded ? "rgba(255,255,255,0.92)" : "transparent",
+            background: expanded
+              ? heavyEffectsActive
+                ? "rgba(53,224,200,0.92)"
+                : "rgba(255,255,255,0.92)"
+              : "transparent",
+            borderColor: heavyEffectsActive ? "#35e0c8" : "#fff",
             borderWidth: expanded ? 0 : 1.5,
+            boxShadow: heavyEffectsActive ? "0 0 10px rgba(53,224,200,0.7)" : undefined,
             willChange: "transform",
           }}
         >
@@ -187,11 +199,12 @@ export function SmartCursor() {
         {/* نقطه‌ی مرکزی */}
         <div
           ref={innerRef}
-          className="absolute left-0 top-0 rounded-full bg-white transition-[width,height,opacity] duration-200"
+          className="absolute left-0 top-0 rounded-full transition-[width,height,opacity] duration-200"
           style={{
             width: expanded ? 4 : 6,
             height: expanded ? 4 : 6,
             opacity: isMedia ? 0 : 1,
+            background: heavyEffectsActive ? "#35e0c8" : "#fff",
             willChange: "transform",
           }}
         />
